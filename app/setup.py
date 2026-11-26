@@ -1,7 +1,5 @@
 import asyncio
 import os
-import sys
-from getpass import getpass
 
 from dotenv import dotenv_values, set_key
 
@@ -25,12 +23,8 @@ def main():
             continue
         if key == "OWNER_ID":
             print("Чтобы узнать ID, нажмите Enter без значения и следуйте подсказке.")
-        prompt = getpass if key in {"BOT_TOKEN", "API_HASH"} else input
-        if prompt is getpass and not sys.stdin.isatty():
-            print("Откройте локальный терминал, чтобы заполнить секретные поля.")
-            return 1
         while True:
-            value = prompt(f"{key}: ").strip()
+            value = input(f"{key}: ").strip()
             if not value and key == "OWNER_ID":
                 try:
                     asyncio.run(lookup(dotenv_values(ENV, interpolate=False)["BOT_TOKEN"]))
