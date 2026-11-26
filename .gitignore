@@ -6,6 +6,7 @@ data/
 *.db-*
 *.log
 .venv/
+.venv-*/
 __pycache__/
 *.py[cod]
 .pytest_cache/
