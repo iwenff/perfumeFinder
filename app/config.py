@@ -29,8 +29,8 @@ def valid(key: str, value: str | None) -> bool:
 @dataclass(frozen=True)
 class Config:
     bot_token: str = field(repr=False)
-    api_id: int
-    api_hash: str = field(repr=False)
+    api_id: int | None
+    api_hash: str | None = field(repr=False)
     owner_id: int
 
     @classmethod
@@ -39,8 +39,11 @@ class Config:
 
         saved = dotenv_values(ENV, interpolate=False)
         values = {key: os.environ.get(key, saved.get(key)) for key in PATTERNS}
-        invalid = [key for key, value in values.items() if not valid(key, value)]
+        required = ["BOT_TOKEN", "OWNER_ID"]
+        if values["API_ID"] or values["API_HASH"]:
+            required.extend(("API_ID", "API_HASH"))
+        invalid = [key for key in required if not valid(key, values[key])]
         if invalid:
             raise ConfigurationError("Заполните настройки: " + ", ".join(invalid))
-        return cls(values["BOT_TOKEN"], int(values["API_ID"]),
+        return cls(values["BOT_TOKEN"], int(values["API_ID"]) if values["API_ID"] else None,
                    values["API_HASH"], int(values["OWNER_ID"]))

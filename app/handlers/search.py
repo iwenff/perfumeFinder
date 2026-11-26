@@ -140,6 +140,8 @@ class SearchJobs:
                     summary += "\nРезультат из кеша."
                 if result.failed:
                     summary += f"\nОшибки доступа или связи: {result.failed}."
+                if result.limited:
+                    summary += f"\nДостигнут лимит страниц публичного превью в каналах: {result.limited}."
                 if result.session_expired:
                     summary += "\n" + api_error(SessionExpired())
                 if result.wait:

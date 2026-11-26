@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from aiohttp import ClientSession, ClientTimeout
 from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramNetworkError, TelegramUnauthorizedError
 from aiogram.fsm.storage.memory import SimpleEventIsolation
@@ -9,6 +10,7 @@ from telethon import errors
 from app.config import DATA, Config, ConfigurationError
 from app.database.repository import Repository
 from app.handlers import channels, history, search, settings, start
+from app.services.public_channels import ChannelSources
 from app.services.search_service import SearchService
 from app.services.telegram_client import PersonalTelegram
 
@@ -42,14 +44,16 @@ async def main():
     config = Config.load()
     DATA.mkdir(mode=0o700, exist_ok=True)
     repo = Repository(DATA / "bot.sqlite")
-    telegram = PersonalTelegram(config, repo)
-    jobs = search.SearchJobs(SearchService(telegram, repo))
+    personal = PersonalTelegram(config, repo) if config.api_id else None
     dispatcher = build_dispatcher(config.owner_id)
 
-    async with Bot(config.bot_token) as bot:
+    async with Bot(config.bot_token) as bot, ClientSession(timeout=ClientTimeout(total=12)) as http:
+        telegram = ChannelSources(repo, http, personal)
+        jobs = search.SearchJobs(SearchService(telegram, repo))
         try:
             await bot.get_me()
-            await telegram.login()
+            if personal:
+                await personal.login()
             await bot.delete_webhook()
             log.info("Бот запущен. Откройте его в Telegram и отправьте /start.")
             await dispatcher.start_polling(
@@ -58,7 +62,8 @@ async def main():
             )
         finally:
             await jobs.close()
-            await telegram.client.disconnect()
+            if personal:
+                await personal.client.disconnect()
 
 
 def run():

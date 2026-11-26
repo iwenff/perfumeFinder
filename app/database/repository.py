@@ -15,6 +15,9 @@ class Repository:
                 CREATE TABLE IF NOT EXISTS added_channels (
                     id INTEGER PRIMARY KEY, title TEXT NOT NULL, username TEXT, access_hash INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS public_channels (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, title TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS history (
                     id INTEGER PRIMARY KEY, name TEXT NOT NULL, volume REAL, days INTEGER NOT NULL,
@@ -36,6 +39,21 @@ class Repository:
                        (channel.id, channel.title, channel.username, channel.peer.access_hash))
             db.execute("INSERT INTO channels VALUES (?, ?, 1) ON CONFLICT(id) DO UPDATE SET enabled=1, title=excluded.title",
                        (channel.id, channel.title))
+
+    def add_public_channel(self, username, title):
+        with self.connect() as db:
+            row = db.execute("""
+                INSERT INTO public_channels(username, title) VALUES (?, ?)
+                ON CONFLICT(username) DO UPDATE SET title=excluded.title
+                RETURNING -id, username, title
+            """, (username, title)).fetchone()
+            db.execute("INSERT INTO channels VALUES (?, ?, 1) ON CONFLICT(id) DO UPDATE SET enabled=1, title=excluded.title",
+                       (row[0], title))
+        return row
+
+    def public_channels(self):
+        with self.connect() as db:
+            return db.execute("SELECT -id, username, title FROM public_channels").fetchall()
 
     def added_channels(self):
         with self.connect() as db:

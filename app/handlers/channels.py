@@ -38,7 +38,7 @@ async def show(message, telegram, repo, page=0, *, refresh=False, toggle=None, n
     ]
     label = f"📢 Мои каналы · {page + 1}/{pages}\nКаналы с ✅ участвуют в поиске. Нажмите на канал, чтобы изменить выбор."
     if not channels:
-        label = "Каналы не найдены. Подпишитесь на канал в Telegram или добавьте доступный канал по ссылке."
+        label = "Каналы не найдены. Добавьте открытый канал по ссылке."
     if notice:
         label = f"{notice}\n\n{label}"
     await Status(message).edit(label, keyboard(
@@ -65,7 +65,7 @@ async def channel_list(callback, state, telegram, repo, jobs):
 async def ask_link(callback, state):
     await callback.answer()
     await state.set_state(ChannelForm.link)
-    await callback.message.edit_text("Отправьте @username или ссылку t.me на канал.",
+    await callback.message.edit_text("Отправьте @username или ссылку t.me на открытый канал.",
                                      reply_markup=keyboard([menu_button()]))
 
 
@@ -80,9 +80,8 @@ async def add_channel(message, state, telegram, repo, jobs):
         await message.answer(api_error(error))
         return
     if not channel:
-        await message.answer("Канал недоступен. Проверьте ссылку и доступ к каналу из личного аккаунта.")
+        await message.answer("Канал недоступен. Проверьте ссылку и доступность публичного превью.")
         return
-    repo.add_channel(channel)
     await state.clear()
     status = await message.answer("Канал добавлен.")
     await show(status, telegram, repo, notice=f"✅ {channel.title[:150]}")

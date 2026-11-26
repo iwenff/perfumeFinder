@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from telethon import errors
 
 from app.services.perfume_parser import parse
+from app.services.public_channels import PreviewLimit
 from app.services.telegram_client import RateLimited
 from app.utils.text import normalize
 
@@ -42,10 +43,11 @@ class Result:
     wait: int = 0
     cached: bool = False
     session_expired: bool = False
+    limited: int = 0
 
     @property
     def partial(self):
-        return bool(self.failed or self.wait or self.session_expired or self.checked < self.total)
+        return bool(self.failed or self.limited or self.wait or self.session_expired or self.checked < self.total)
 
 
 def sort_offers(offers, order):
@@ -94,6 +96,8 @@ class SearchService:
                     progress.found = len(unique)
                     progress.phase = "🔎 Ищу"
                     await asyncio.sleep(0)
+            except PreviewLimit:
+                result.limited += 1
             except errors.FloodWaitError as error:
                 if not isinstance(error, RateLimited):
                     self.telegram.note_limit(error.seconds)
